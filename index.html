@@ -662,21 +662,31 @@ var d=pickedDate?fmtDate(pickedDate):'',pl=finalPick?finalPick.p.n:'';
 return 'I said yes 🎉'+(pl?'\n'+pl:'')+(d?' · '+d:'');
 }
 function waOpen(text){window.location.href='https://wa.me/'+WA_NUMBER+'?text='+encodeURIComponent(text);}
+var DRIVE_URL='https://script.google.com/macros/s/AKfycbylCNDkChvPMsXQfcVaVg71i4oz5RY0h1rA1IjRAVyzQ4MWZjOJ2ygioSBow7V6_c-X/exec';
+function uploadTicket(blob){
+return new Promise(function(resolve){
+var fin=false,to=setTimeout(function(){if(!fin){fin=true;resolve('');}},9000);
+function end(v){if(!fin){fin=true;clearTimeout(to);resolve(v||'');}}
+try{
+var fr=new FileReader();
+fr.onload=function(){
+var nm='ticket-'+((finalPick?finalPick.p.n:'')+'-'+(pickedDate?fmtDate(pickedDate):'')).replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'')+'.png';
+fetch(DRIVE_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({name:nm,img:String(fr.result).split(',')[1]})})
+.then(function(r){return r.json();}).then(function(j){end(j&&j.url);}).catch(function(){end('');});
+};
+fr.readAsDataURL(blob);
+}catch(e){end('');}
+});
+}
+var shareBusy=false;
 function shareTicket(){
 if(shareBusy)return;shareBusy=true;
-var st=document.getElementById('mailSt'),text=waText();
-function done(){shareBusy=false;}
-function fallback(blob){
-if(blob){try{var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='our-date.png';document.body.appendChild(a);a.click();a.remove();st.textContent='Ticket image saved. Attach it in the chat 📎';st.hidden=false;}catch(e){}}
-setTimeout(function(){waOpen(text);done();},500);
-}
-(blobP||(blobP=ticketBlob())).then(function(blob){
-var file=blob?new File([blob],'our-date.png',{type:'image/png'}):null;
-if(file&&navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-return navigator.share({files:[file],text:text}).then(done,function(err){if(err&&err.name==='AbortError'){done();return;}fallback(blob);});
-}
-fallback(blob);
-}).catch(function(){waOpen(text);done();});
+var btn=document.getElementById('mailBtn'),label=btn.textContent;
+btn.textContent='Sending… 💌';
+(blobP||(blobP=ticketBlob())).then(uploadTicket).then(function(url){
+shareBusy=false;btn.textContent=label;
+waOpen(waText()+(url?'\n'+url:''));
+}).catch(function(){shareBusy=false;btn.textContent=label;waOpen(waText());});
 }
 document.getElementById('mailBtn').addEventListener('click',shareTicket);
 function mailBack(){
