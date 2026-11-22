@@ -144,6 +144,7 @@ h1 em,h2 em{font-style:normal;color:var(--accent);font-weight:700}
 .page[data-page="date"] .ask{margin-top:48px}
 .page[data-page="date"] .go{font-size:21px;padding:18px 42px}
 .page[data-page="date"] .no{font-size:21px;padding:18px 38px}
+button.mail{font:inherit;font-size:16px;cursor:pointer}
 .mail{display:inline-block;margin-top:26px;color:var(--ink);font-size:16px;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:11px 24px}
 .mail:hover{border-color:var(--accent)}
 .mailst{margin:22px 0 0;color:var(--mute);font-size:15px}
@@ -291,7 +292,7 @@ h1 em,h2 em{font-style:normal;color:var(--accent);font-weight:700}
 </div>
 </div>
 <p class="lead rise" style="--i:5" id="finalMsg">Come hungry. I’ll handle the rest.</p>
-<a class="mail rise" style="--i:6" id="mailBtn" href="#" hidden>✉ Send me your answer</a>
+<button type="button" class="mail rise" style="--i:6" id="mailBtn" hidden>💬 Send it on WhatsApp</button>
 <p class="mailst rise" style="--i:6" id="mailSt" hidden></p>
 <a class="go rise" style="--i:7" href="#start">Read it again</a>
 </section>
@@ -611,46 +612,78 @@ dyes.addEventListener('click',function(){accepted=true;});
 dyes.addEventListener('pointerenter',function(){meme('m-date','heart');});
 dyes.addEventListener('pointerleave',function(){meme('m-date',dKey);});
 
-// ---------- mail-back settings (fill these in)
-var MAIL_TO='sayan.hackerone@gmail.com';        // your email. Shows a "Send me your answer" button that opens her mail app, pre-filled.
-var FORM_ENDPOINT='';  // optional: a form service URL (Web3Forms / Formspree) to send the answer silently. Only works when the page is hosted on your own site.
-var FORM_KEY='';       // optional: access key for that service (Web3Forms needs one)
+// ---------- WhatsApp share (ticket image)
+var WA_NUMBER='919091820455';   // optional: his number, country code + digits only (e.g. 9198xxxxxxxx). Only used if the share sheet is unavailable.
 var triedNo=false,sent=false;
-function buildMail(){
-var d=pickedDate?fmtDate(pickedDate):'(no date)';
-var place=finalPick?finalPick.p.n+' ('+finalPick.d.label+')':'(no place)';
-return {
-subject:'She said yes 🎉',
-body:'She said yes! 🎉\n\nPlace: '+place+'\nDate: '+d
-};
-}
-var mailGo=false;
-document.getElementById('mailBtn').addEventListener('click',function(e){
-if(mailGo){e.preventDefault();return;}
-var href=this.href;
-if(reduce())return;
-e.preventDefault();mailGo=true;
-if(e.detail===0){var r=this.getBoundingClientRect();document.dispatchEvent(new PointerEvent('pointerdown',{clientX:r.left+r.width/2,clientY:r.top+r.height/2}));}
-setTimeout(function(){mailGo=false;window.location.href=href;},1100);
+var DECO={club:'🪩',fine:'🕯️',cafe:'☕',izakaya:'🏮'};
+var TK={club:{fg:'#fff',bd:'#ff2bd6'},fine:{fg:'#3b2a1f',bd:'#b08d3c'},cafe:{fg:'#f3ead3',bd:'#c9a24a'},izakaya:{fg:'#fff3e0',bd:'#f1c27d'}};
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function ticketBlob(){
+var k=(finalPick&&TK[finalPick.k])?finalPick.k:'fine',t=TK[k];
+var load=(document.fonts&&document.fonts.load)?Promise.all([document.fonts.load('700 40px Cinzel'),document.fonts.load('600 20px "DM Sans"')]).catch(function(){}):Promise.resolve();
+return load.then(function(){
+var W=680,H=960,x=40,y=40,w=600,h=880,cutY=y+h-250;
+var cv2=document.createElement('canvas');cv2.width=W;cv2.height=H;var c=cv2.getContext('2d');
+var pageBg=(getComputedStyle(document.documentElement).getPropertyValue('--bg')||'').trim()||'#fff3cf';
+c.fillStyle=pageBg;c.fillRect(0,0,W,H);
+c.save();rr(c,x,y,w,h,36);c.clip();
+if(k==='club'){var g=c.createRadialGradient(x+w/2,y,0,x+w/2,y,w*.95);g.addColorStop(0,'#4a0d5c');g.addColorStop(.62,'#0b0b12');g.addColorStop(1,'#0b0b12');c.fillStyle=g;}
+else c.fillStyle={fine:'#fbf6e9',cafe:'#1f4a40',izakaya:'#b3202a'}[k];
+c.fillRect(x,y,w,h);
+if(k==='cafe'){c.fillStyle='rgba(255,255,255,.05)';for(var d=-h;d<w+h;d+=40){c.beginPath();c.moveTo(x+d,y);c.lineTo(x+d+20,y);c.lineTo(x+d+20-h,y+h);c.lineTo(x+d-h,y+h);c.fill();}}
+c.restore();
+c.save();if(k==='club'){c.shadowColor='#ff2bd6';c.shadowBlur=30;}
+c.strokeStyle=t.bd;c.lineWidth=3;rr(c,x,y,w,h,36);c.stroke();c.restore();
+if(k==='fine'){c.strokeStyle=t.bd;c.lineWidth=2;rr(c,x+16,y+16,w-32,h-32,24);c.stroke();}
+var name=finalPick?finalPick.p.n:'',size=68,lines,lh;
+c.fillStyle=t.fg;c.textAlign='center';c.textBaseline='middle';
+function wrap(){c.font='700 '+size+'px Cinzel,Georgia,serif';lines=[];var cur='';name.split(' ').forEach(function(wd){var tryL=cur?cur+' '+wd:wd;if(c.measureText(tryL).width>w-100&&cur){lines.push(cur);cur=wd;}else cur=tryL;});if(cur)lines.push(cur);}
+wrap();if(lines.length>3){size=50;wrap();}
+lh=size*1.25;
+var block=130+50+lines.length*lh,top=y+(cutY-y-block)/2;
+c.font='120px serif';c.fillText(DECO[k],x+w/2,top+65);
+c.font='700 '+size+'px Cinzel,Georgia,serif';
+if(k==='club'){c.shadowColor='#ff2bd6';c.shadowBlur=22;}
+lines.forEach(function(l,i){c.fillText(l,x+w/2,top+180+lh*i+lh/2);});
+c.shadowBlur=0;
+c.strokeStyle=t.fg;c.lineWidth=3;c.setLineDash([14,10]);c.beginPath();c.moveTo(x,cutY);c.lineTo(x+w,cutY);c.stroke();c.setLineDash([]);
+c.fillStyle=pageBg;c.beginPath();c.arc(x,cutY,26,0,7);c.fill();c.beginPath();c.arc(x+w,cutY,26,0,7);c.fill();
+c.fillStyle=t.fg;c.font='600 28px "DM Sans",sans-serif';
+c.fillText((pickedDate?fmtDate(pickedDate):'').toUpperCase(),x+w/2,cutY+68);
+c.globalAlpha=.75;var bx=x+w*.11,bend=x+w*.89,by=cutY+108;
+for(var px=bx;px<bend;px+=20){c.fillRect(px,by,4,76);if(px+10<bend)c.fillRect(px+10,by,2,76);}
+c.globalAlpha=1;
+return new Promise(function(res){cv2.toBlob(function(b){res(b);},'image/png');});
 });
+}
+var blobP=null,shareBusy=false;
+function waText(){
+var d=pickedDate?fmtDate(pickedDate):'',pl=finalPick?finalPick.p.n:'';
+return 'I said yes 🎉'+(pl?'\n'+pl:'')+(d?' · '+d:'');
+}
+function waOpen(text){window.location.href='https://wa.me/'+WA_NUMBER+'?text='+encodeURIComponent(text);}
+function shareTicket(){
+if(shareBusy)return;shareBusy=true;
+var st=document.getElementById('mailSt'),text=waText();
+function done(){shareBusy=false;}
+function fallback(blob){
+if(blob){try{var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='our-date.png';document.body.appendChild(a);a.click();a.remove();st.textContent='Ticket image saved. Attach it in the chat 📎';st.hidden=false;}catch(e){}}
+setTimeout(function(){waOpen(text);done();},500);
+}
+(blobP||(blobP=ticketBlob())).then(function(blob){
+var file=blob?new File([blob],'our-date.png',{type:'image/png'}):null;
+if(file&&navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+return navigator.share({files:[file],text:text}).then(done,function(err){if(err&&err.name==='AbortError'){done();return;}fallback(blob);});
+}
+fallback(blob);
+}).catch(function(){waOpen(text);done();});
+}
+document.getElementById('mailBtn').addEventListener('click',shareTicket);
 function mailBack(){
-var m=buildMail(),btn=document.getElementById('mailBtn'),st=document.getElementById('mailSt');
-btn.hidden=true;st.hidden=true;
-if(FORM_ENDPOINT&&!sent){
-sent=true;
-try{
-fetch(FORM_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({access_key:FORM_KEY,subject:m.subject,message:m.body,from_name:'Surprise page'})})
-.then(function(r){if(!r.ok)throw 0;st.textContent='Your answer is on its way ✓';st.hidden=false;})
-.catch(function(){sent=false;showMailto();});
-}catch(e){sent=false;showMailto();}
-return;
-}
-showMailto();
-function showMailto(){
-if(!MAIL_TO)return;
-btn.href='mailto:'+MAIL_TO+'?subject='+encodeURIComponent(m.subject)+'&body='+encodeURIComponent(m.body);
-btn.hidden=false;
-}
+var btn=document.getElementById('mailBtn'),st=document.getElementById('mailSt');
+st.hidden=true;btn.hidden=false;
+blobP=null;
+setTimeout(function(){blobP=ticketBlob();},60);
 }
 
 // ---------- routing
